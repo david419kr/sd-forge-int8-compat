@@ -1,8 +1,15 @@
 import logging
+import os
+import sys
 
 import torch
 
 logger = logging.getLogger("sd-forge-int8-compat")
+
+
+_SCRIPT_DIR = os.path.dirname(__file__)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 
 
 _FLOAT_DTYPES = {
@@ -73,6 +80,9 @@ def _install_linear_patch() -> None:
 
     original_load = linear_cls._load_from_state_dict
     original_forward = linear_cls.forward
+    get_weight_and_bias = operations.get_weight_and_bias
+    linear = torch.nn.functional.linear
+    tensor_type = torch.Tensor
 
     def patched_load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
         target_dtype = _parameter_dtype(self)
@@ -96,10 +106,21 @@ def _install_linear_patch() -> None:
         if need_cast:
             return original_forward(self, x)
 
-        weight, bias = operations.get_weight_and_bias(self)
-        weight = _cast_for_linear(weight, x)
-        bias = _cast_for_linear(bias, x)
-        return torch.nn.functional.linear(x, weight, bias)
+        weight, bias = get_weight_and_bias(self)
+
+        if isinstance(weight, tensor_type):
+            if weight.is_floating_point() and (weight.dtype != x.dtype or weight.device != x.device):
+                weight = weight.to(device=x.device, dtype=x.dtype, non_blocking=True)
+            elif weight.device != x.device:
+                weight = weight.to(device=x.device, non_blocking=True)
+
+        if isinstance(bias, tensor_type):
+            if bias.is_floating_point() and (bias.dtype != x.dtype or bias.device != x.device):
+                bias = bias.to(device=x.device, dtype=x.dtype, non_blocking=True)
+            elif bias.device != x.device:
+                bias = bias.to(device=x.device, non_blocking=True)
+
+        return linear(x, weight, bias)
 
     linear_cls._load_from_state_dict = patched_load_from_state_dict
     linear_cls.forward = patched_forward
