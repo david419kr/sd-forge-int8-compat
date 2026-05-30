@@ -2,6 +2,8 @@
 
 Forge Neo의 `Diffusion in Low Bits`에서 `int8` / `int8 (fp16 LoRA)` 사용 시 Anima 모델과 LoRA가 dtype mismatch로 중단되는 문제를 완화하는 호환성 패치 extension입니다.
 
+Forge Neo에서 Anima 모델을 INT8 모드로 실행하면 프롬프트, 해상도, 샘플러 설정, GPU, LoRA 구성에 따라 체감상 최대 1.5배에 가까운 속도 향상이 있을 수 있습니다.
+
 ## 대상 문제
 
 Anima INT8 로딩 중 일부 Linear 레이어가 INT8 양자화 제외 목록에 걸리면 checkpoint 원래 dtype인 `fp16` weight가 남을 수 있습니다. 이 상태에서 입력이 `bf16`으로 들어오면 다음과 같은 오류가 발생합니다.
@@ -23,7 +25,7 @@ RuntimeError: expected mat1 and mat2 to have the same dtype, but got: struct c10
 3. 상단 `Diffusion in Low Bits`에서 `int8` 또는 `int8 (fp16 LoRA)`를 선택합니다.
 4. Anima checkpoint와 기존 Anima LoRA로 생성 테스트를 진행합니다.
 
-LoRA를 사용할 때는 먼저 `int8 (fp16 LoRA)`를 권장합니다.
+추천 설정은 `int8`입니다.
 
 ## 범위와 한계
 

@@ -4,6 +4,8 @@
 
 Compatibility patch extension for Forge Neo INT8 inference. It mitigates dtype mismatch failures when using Anima models with `Diffusion in Low Bits` set to `int8` or `int8 (fp16 LoRA)`.
 
+When running Anima models in INT8 mode on Forge Neo, generation may feel up to nearly 1.5x faster depending on the prompt, resolution, sampler settings, GPU, and LoRA stack.
+
 ## Problem
 
 During Anima INT8 loading, some Linear layers can be excluded from INT8 quantization. Those fallback layers may keep the checkpoint's original `fp16` weights while the model input arrives as `bf16`, which can fail with:
@@ -25,7 +27,7 @@ RuntimeError: expected mat1 and mat2 to have the same dtype, but got: struct c10
 3. Select `int8` or `int8 (fp16 LoRA)` from `Diffusion in Low Bits`.
 4. Test generation with an Anima checkpoint and your existing Anima LoRAs.
 
-For LoRA workflows, start with `int8 (fp16 LoRA)`.
+Recommended setting: `int8`.
 
 ## Scope
 
